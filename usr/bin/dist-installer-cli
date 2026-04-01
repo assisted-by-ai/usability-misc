@@ -3,6 +3,13 @@
 ## Copyright (C) 2023 - 2025 ENCRYPTED SUPPORT LLC <adrelanos@whonix.org>
 ## See the file COPYING for copying conditions.
 
+## Comments for reviewers:
+## random_socks_password leaking to debug log is out-of-scope
+##
+## /usr/share/usability-misc/dist-installer-cli-standalone is auto-generated
+## from /usr/bin/dist-installer-cli (and its sourced function files).
+## Security fixes should be applied here in /usr/bin/dist-installer-cli,
+## not in the standalone file.
 ##########################
 ## BEGIN DEFAULT VALUES ##
 ##########################
@@ -4170,6 +4177,14 @@ set_target_user_account() {
 
   if ! id --user -- "${target_user}" >/dev/null; then
     die 1 "Account check result: target_user '${target_user}' does not exist! Consider using the '--user=insert-user-name-here' option to adjust."
+  fi
+
+  ## Prevent targeting system accounts (UID < 1000) such as root, www-data, etc.
+  ## to avoid writing files into sensitive system directories.
+  local target_uid
+  target_uid="$(id --user -- "${target_user}")"
+  if [ "${target_uid}" -lt 1000 ]; then
+    die 1 "Account check result: target_user '${target_user}' (UID ${target_uid}) is a system account. Only regular user accounts (UID >= 1000) are allowed."
   fi
 
   if [ "${sucmd}" != 'sudo' ]; then
