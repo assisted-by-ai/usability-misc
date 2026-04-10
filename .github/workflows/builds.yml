@@ -197,3 +197,20 @@ jobs:
 
             - name: Run Installer ShellCheck
               run: shellcheck usr/share/usability-misc/dist-installer-cli-standalone
+
+            - name: Setup for build-dist-installer-cli
+              run: |
+                  if command -v apt-get >/dev/null; then
+                    apt-get install --yes git
+                  elif command -v dnf >/dev/null; then
+                    dnf install --assumeyes git
+                  fi
+                  git clone --depth=1 https://github.com/Kicksecure/helper-scripts.git /tmp/helper-scripts
+                  mkdir -p /usr/libexec
+                  ln -s /tmp/helper-scripts/usr/libexec/helper-scripts /usr/libexec/helper-scripts
+                  sudo -u user git config --global --add safe.directory "$(pwd)"
+                  chown user:user usr/share/usability-misc/ usr/share/usability-misc/dist-installer-cli-standalone
+            - name: test
+              run: ls -la "usr/share/usability-misc/build-dist-installer-cli"
+            - name: Run build-dist-installer-cli
+              run: sudo -u user -- timeout --kill-after=5 5 bash -x -c "usr/share/usability-misc/build-dist-installer-cli"
