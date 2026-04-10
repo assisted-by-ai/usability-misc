@@ -21,59 +21,119 @@ Depends: policyrcd-script-zg2, adduser, python3, damngpl,
 Conflicts: desktop-config-dist (<< 3:13.8-1)
 Replaces: gpl-sources-download, scurl, grub-screen-resolution
 Description: Misc usability improvements
- Enables auto login for user `user` in `lightdm`.
- `/etc/lightdm/lightdm.conf.d/30_autologin.conf`
- https://www.kicksecure.com/wiki/Desktop#Disable_Autologin
+ A collection of shell wrappers, configuration drop-ins, systemd units
+ and desktop defaults for Kicksecure and Whonix.
  .
- Creates folders /home/user/Downloads and /home/user/Pictures.
+ CLI tools:
  .
- Adds account "user" to group libvirt as well as to group kvm.
+  * scurl - curl wrapper enforcing TLS 1.3 and HTTPS-only
+    (--tlsv1.3 --proto =https).
+  * scurl-download / curl-download (curlget) - wcurl wrappers,
+    scurl-download adds --tlsv1.3.
+  * gsudoedit - runs sudoedit with a graphical askpass dialog
+    (Wayland-compatible, uses yad).
+  * gpl_download_sources - downloads GPL-licensed source code of all
+    installed packages via damngpl + apt-get source.
+  * ip_unpriv - runs /bin/ip through passwordless sudo for the
+    unprivileged "tunnel" user.
+  * iptables-save-deterministic - outputs iptables-save with counters
+    zeroed and comments stripped for diffable results.
+  * repo-add-dist - adds the Kicksecure APT repository and signing key.
+  * dist-installer-cli - CLI installer for Kicksecure/Whonix (source
+    script; auto-generates the standalone version).
+  * virtualbox-send-sysrq - sends SysRq key combinations to a
+    VirtualBox VM via VBoxManage.
+  * whonix-dev-backup - backs up Kicksecure/Whonix GitHub repos and
+    wiki dumps.
+  * flameshot.dist - Flameshot wrapper setting Wayland (sway)
+    environment variables for compatibility.
+  * orca-enable-autostart - removes the OnlyShowIn restriction from
+    Orca screen reader autostart.
  .
- Ships a file /etc/sudoers.d/user-passwordless that contains comments and
- "#user   ALL=(ALL:ALL) NOPASSWD:ALL". Lets account "user" easily run all
- commands without password. Disabled (out commented) by default.
+ sudo configuration (/etc/sudoers.d/):
  .
- Simplifies running OpenVPN as unprivileged user.
+  * pwfeedback - shows asterisks while typing the sudo password.
+  * sudo-lecture-disable - disables the first-run sudo lecture.
+  * tunnel_unpriv - commented-out rules to allow unprivileged OpenVPN.
+  * user-passwordless - commented-out rule to let the "user" account
+    run all commands without a password. Disabled by default.
  .
- Ships a FoxyProxy add-on configuration file for use with Tor Browser.
+ GRUB and boot:
  .
- Sets mousepad as the default editor for environment variable VISUAL
- is unset and if mousepad is installed.
+  * Sets 1024x768 boot screen resolution via GRUB_GFXPAYLOAD_LINUX.
+    /etc/default/grub.d/30_screen_resolution.cfg
+    Skipped in Qubes.
+  * Adds a GRUB submenu for switching keyboard layouts at boot.
+    /etc/grub.d/44_kb_layout
+  * Generates GRUB keyboard layouts during package install using
+    set-grub-keymap --build-all.
+  * Creates Secure Boot MOK key using shim-signed-mok-setup (provided
+    by package helper-scripts) during installation.
  .
- Disable sudo default lecture.
- /etc/sudoers.d/sudo-lecture-disable
+ Shell environment:
  .
- Add pwfeedback to sudo Defaults so password asterisks are shown while typing.
- /etc/sudoers.d/pwfeedback
+  * Sets VISUAL to featherpad or mousepad if available and unset.
+    /etc/profile.d/50_default_editor.sh
+  * Prepends /usr/share/usability-misc/xdg-override/ to XDG_DATA_DIRS,
+    setting pcmanfm-qt as default file manager.
  .
- qterminal:
+ Zsh configuration (/etc/zsh/):
  .
- Ships gsudoedit, a wrapper to run sudoedit with a graphical editor.
+  * Ships a complete zsh configuration (prompt, completions, vi-mode
+    key bindings, syntax highlighting, auto-suggestions).
+  * Does not configure zsh as default shell.
+    (That is up to package dist-base-files.)
+  * Silences the zsh-newuser-install wizard.
  .
- Bisq workaround "sudo mkdir -p /usr/share/desktop-directories" as per
- https://github.com/bisq-network/bisq/issues/848
+ APT:
  .
- gpl_sources_download GPL'ed source code of all installed packages.
- Used damngpl to get a list of all GPL'ed packages, then downloads them using
- apt-get source.
+  * Speeds up apt-get update by disabling language translations and
+    Contents index. /etc/apt/apt.conf.d/30usability-misc
  .
- SSL curl wrapper: Simple wrapper called scurl, that adds
- "--tlsv1.3 --proto =https" in front of all invocations of "curl" when
- running "scurl".
+ systemd services and drop-ins:
  .
- Sets 1024x768 as boot screen resolution
- Ships a /etc/default/grub.d/30_screen_resolution.cfg configuration file, that
- injects "vga=0x0317" into the GRUB_CMDLINE_LINUX_DEFAULT variable.
+  * avoid-needless-polkit-agent.service - disables the polkit
+    authentication agent in unprivileged user sessions (when
+    user-sysmaint-split is installed).
+  * check-user-slice-on-shutdown.service - reports hung user processes
+    during shutdown.
+  * orca-kill-at-shutdown.service - gracefully terminates the Orca
+    screen reader at shutdown.
+  * console-setup.service.d/30_fix.conf - workaround for a setupcon
+    tmpfile race condition (Debian bug #846256).
+  * openvpn@openvpn.service.d/50_unpriv.conf - runs OpenVPN as the
+    unprivileged "tunnel" user.
+  * usbguard*.service.d/ - skip USBGuard services when no PCI USB
+    controller is present (virtual machines).
+  * Enables systemd-journald-audit.socket (required by apparmor-info
+    and apparmor-watch).
+    https://bugs.debian.org/cgi-bin/bugreport.cgi?bug=1038993
  .
- Ships `zsh` derivative configuration settings folder `/etc/zsh`.
- But does not configure `zsh` as default shell.
- (That is up to package `dist-base-files`.)
+ Kernel modules:
  .
- Enable systemd-journald audit transport.
- (`deb-systemd-helper enable systemd-journald-audit.socket`)
- Required by helper-scripts `apparmor-info` and `apparmor-watch`.
- Debian no longer enables systemd-journald-audit.socket by default.
- https://bugs.debian.org/cgi-bin/bugreport.cgi?bug=1038993
+  * Prevents KVM and VirtualBox from conflicting by setting
+    enable_virt_at_load=0 for the kvm module.
+    /usr/lib/modprobe.d/usability-misc.conf
  .
- Creates Secure Boot MOK key using 'shim-signed-mok-setup' (provided by
- package 'helper-scripts') during installation.
+ DKMS:
+ .
+  * Lowers parallel compilation jobs to 1 on systems with less than
+    2 GB RAM to prevent VM freezes.
+    /etc/dkms/framework.conf.d/30_usability-misc.conf
+ .
+ Desktop integration:
+ .
+  * On-Screen Keyboard desktop entries for launching/stopping wvkbd.
+  * Mousepad configured to open files in new windows instead of tabs
+    (gsettings override).
+  * XFCE Terminal skeleton config: unlimited scrollback, no
+    scroll-on-output. /etc/skel/.config/xfce4/terminal/terminalrc
+  * Creates ~/Downloads and ~/Pictures via skeleton placeholders.
+ .
+ Package postinst actions:
+ .
+  * Creates the "tunnel" system user for unprivileged OpenVPN.
+  * Creates /usr/share/desktop-directories (Bisq workaround).
+    https://github.com/bisq-network/bisq/issues/848
+  * Adds account "user" to group libvirt and group kvm.
+  * Runs update-grub if available.
