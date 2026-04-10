@@ -1,116 +1,138 @@
-# Misc usability improvements #
+# usability-misc
 
-Enables auto login for user `user` in `lightdm`.
-`/etc/lightdm/lightdm.conf.d/30_autologin.conf`
-https://www.kicksecure.com/wiki/Desktop#Disable_Autologin
+A collection of usability improvements for [Kicksecure](https://www.kicksecure.com/) and [Whonix](https://www.whonix.org/) Linux distributions, packaged as a Debian `.deb`. It ships shell wrappers, configuration drop-ins, systemd units, and a full `zsh` setup to make a freshly installed system more pleasant to use out of the box.
 
-Creates folders /home/user/Downloads and /home/user/Pictures.
+## What's Included
 
-Adds account "user" to group libvirt as well as to group kvm.
+### CLI Tools (`usr/bin/`)
 
-Ships a file /etc/sudoers.d/user-passwordless that contains comments and
-"#user   ALL=(ALL:ALL) NOPASSWD:ALL". Lets account "user" easily run all
-commands without password. Disabled (out commented) by default.
+| Command | Description |
+|---|---|
+| `scurl` | Wrapper around `curl` that enforces TLS 1.3 and HTTPS-only (`--tlsv1.3 --proto =https`) |
+| `scurl-download` | Like `scurl`, but delegates to `wcurl` with TLS 1.3 enforced |
+| `curl-download` / `curlget` | Thin wrapper around `wcurl` |
+| `gsudoedit` | Runs `sudoedit` with a graphical askpass dialog (Wayland-compatible, uses `yad`) |
+| `gpl_download_sources` | Downloads GPL-licensed source code for all installed packages via `damngpl` + `apt-get source` |
+| `ip_unpriv` | Runs `/bin/ip` through passwordless `sudo` for an unprivileged `tunnel` user |
+| `iptables-save-deterministic` | Outputs `iptables-save` with counters zeroed and comments stripped for diffable results |
+| `repo-add-dist` | Adds the Kicksecure APT repository and signing key to the system |
+| `dist-installer-cli` | CLI installer for Kicksecure/Whonix (source script; auto-generates the standalone version) |
+| `virtualbox-send-sysrq` | Sends SysRq key combinations to a VirtualBox VM via `VBoxManage` |
+| `whonix-dev-backup` | Backs up Kicksecure and Whonix GitHub repos and wiki dumps |
+| `flameshot.dist` | Flameshot wrapper that sets Wayland (sway) environment variables for compatibility |
+| `orca-enable-autostart` | Removes the `OnlyShowIn` restriction from Orca screen reader autostart |
 
-Simplifies running OpenVPN as unprivileged user.
+### sudo Configuration (`etc/sudoers.d/`)
 
-Ships a FoxyProxy add-on configuration file for use with Tor Browser.
+- **`pwfeedback`** -- Shows asterisks while typing the sudo password.
+- **`sudo-lecture-disable`** -- Disables the first-run "trust you have received the usual lecture" message.
+- **`tunnel_unpriv`** -- Commented-out rules to allow unprivileged OpenVPN operation.
+- **`user-passwordless`** -- Commented-out rule to allow the `user` account to run all commands without a password. Disabled by default.
 
-Sets mousepad as the default editor for environment variable VISUAL
-is unset and if mousepad is installed.
+### GRUB & Boot
 
-Disable sudo default lecture.
-/etc/sudoers.d/sudo-lecture-disable
+- Sets `1024x768` boot screen resolution via `GRUB_GFXPAYLOAD_LINUX` (`etc/default/grub.d/30_screen_resolution.cfg`). Skipped in Qubes.
+- Adds a GRUB submenu for switching keyboard layouts at boot (`etc/grub.d/44_kb_layout`).
+- Generates GRUB keyboard layouts during package install using `set-grub-keymap --build-all`.
+- Creates a Secure Boot MOK key via `shim-signed-mok-setup` on install.
 
-Add pwfeedback to sudo Defaults so password asterisks are shown while typing.
-/etc/sudoers.d/pwfeedback
+### Shell Environment
 
-qterminal:
+- **Default editor** -- Sets `VISUAL` to `featherpad` or `mousepad` if available and unset (`etc/profile.d/50_default_editor.sh`).
+- **XDG override** -- Prepends `/usr/share/usability-misc/xdg-override/` to `XDG_DATA_DIRS`, setting `pcmanfm-qt` as default file manager.
 
-Ships gsudoedit, a wrapper to run sudoedit with a graphical editor.
+### Zsh Configuration (`etc/zsh/`)
 
-Bisq workaround "sudo mkdir -p /usr/share/desktop-directories" as per
-https://github.com/bisq-network/bisq/issues/848
+Ships a complete zsh configuration (prompt, completions, vi-mode key bindings, syntax highlighting, auto-suggestions) under `/etc/zsh/`. Does **not** change the default shell -- that is handled by `dist-base-files`.
 
-gpl_sources_download GPL'ed source code of all installed packages.
-Used damngpl to get a list of all GPL'ed packages, then downloads them using
-apt-get source.
+### APT
 
-SSL curl wrapper: Simple wrapper called scurl, that adds
-"--tlsv1.3 --proto =https" in front of all invocations of "curl" when
-running "scurl".
+- Speeds up `apt-get update` by disabling language translations and Contents index (`etc/apt/apt.conf.d/30usability-misc`).
 
-Sets 1024x768 as boot screen resolution
-Ships a /etc/default/grub.d/30_screen_resolution.cfg configuration file, that
-injects "vga=0x0317" into the GRUB_CMDLINE_LINUX_DEFAULT variable.
+### systemd Services & Drop-ins
 
-Ships `zsh` derivative configuration settings folder `/etc/zsh`.
-But does not configure `zsh` as default shell.
-(That is up to package `dist-base-files`.)
+- **`avoid-needless-polkit-agent.service`** -- Disables the polkit authentication agent in unprivileged user sessions (when `user-sysmaint-split` is installed).
+- **`check-user-slice-on-shutdown.service`** -- Reports hung user processes during shutdown.
+- **`orca-kill-at-shutdown.service`** -- Gracefully terminates the Orca screen reader at shutdown.
+- **`console-setup.service.d/30_fix.conf`** -- Workaround for a `setupcon` tmpfile race condition ([Debian #846256](https://bugs.debian.org/cgi-bin/bugreport.cgi?bug=846256#44)).
+- **`openvpn@openvpn.service.d/50_unpriv.conf`** -- Runs OpenVPN as the unprivileged `tunnel` user.
+- **`usbguard*.service.d/`** -- Skip USBGuard services when no PCI USB controller is present (virtual machines).
 
-Enable systemd-journald audit transport.
-(`deb-systemd-helper enable systemd-journald-audit.socket`)
-Required by helper-scripts `apparmor-info` and `apparmor-watch`.
-Debian no longer enables systemd-journald-audit.socket by default.
-https://bugs.debian.org/cgi-bin/bugreport.cgi?bug=1038993
+### Kernel Modules
 
-Creates Secure Boot MOK key using 'shim-signed-mok-setup' (provided by
-package 'helper-scripts') during installation.
+- Prevents KVM and VirtualBox from conflicting by setting `enable_virt_at_load=0` for the `kvm` module (`usr/lib/modprobe.d/usability-misc.conf`).
 
-## How to install `usability-misc` using apt-get ##
+### DKMS
 
-1\. Download the APT Signing Key.
+- Lowers DKMS parallel compilation jobs to 1 on systems with less than 2 GB RAM to prevent VM freezes (`etc/dkms/framework.conf.d/30_usability-misc.conf`).
+
+### Desktop Integration
+
+- **On-Screen Keyboard** desktop entries for launching and stopping `wvkbd`.
+- **Mousepad** configured to open files in new windows instead of tabs (via gsettings override).
+- **XFCE Terminal** skeleton config with unlimited scrollback and no scroll-on-output.
+- Creates `~/Downloads` and `~/Pictures` directories via skeleton placeholders.
+
+### Package postinst Actions
+
+- Creates the `tunnel` system user for unprivileged OpenVPN operation.
+- Enables `systemd-journald-audit.socket` (required by `apparmor-info`/`apparmor-watch`).
+- Creates `/usr/share/desktop-directories` (Bisq workaround, [bisq-network/bisq#848](https://github.com/bisq-network/bisq/issues/848)).
+- Runs `update-grub` if available.
+
+## Installation
+
+### From the APT Repository
+
+1. Download the APT signing key.
 
 ```
 wget https://www.kicksecure.com/keys/derivative.asc
 ```
 
-Users can [check the Signing Key](https://www.kicksecure.com/wiki/Signing_Key) for better security.
+Users can [verify the signing key](https://www.kicksecure.com/wiki/Signing_Key) for better security.
 
-2\. Add the APT Signing Key.
+2. Install the signing key.
 
 ```
 sudo cp ~/derivative.asc /usr/share/keyrings/derivative.asc
 ```
 
-3\. Add the derivative repository.
+3. Add the repository.
 
 ```
 echo "deb [signed-by=/usr/share/keyrings/derivative.asc] https://deb.kicksecure.com trixie main contrib non-free" | sudo tee /etc/apt/sources.list.d/derivative.list
 ```
 
-4\. Update your package lists.
+4. Update and install.
 
 ```
 sudo apt-get update
-```
-
-5\. Install `usability-misc`.
-
-```
 sudo apt-get install usability-misc
 ```
 
-## How to Build deb Package from Source Code ##
+### Building from Source
 
-Can be build using standard Debian package build tools such as:
+Standard Debian tooling works:
 
 ```
 dpkg-buildpackage -b
 ```
 
-See instructions.
+See the full build instructions (replace `generic-package` with `usability-misc`):
 
-NOTE: Replace `generic-package` with the actual name of this package `usability-misc`.
+* **A)** [Easy build](https://www.kicksecure.com/wiki/Dev/Build_Documentation/generic-package/easy)
+* **B)** [Build with signature verification](https://www.kicksecure.com/wiki/Dev/Build_Documentation/generic-package)
 
-* **A)** [easy](https://www.kicksecure.com/wiki/Dev/Build_Documentation/generic-package/easy), _OR_
-* **B)** [including verifying software signatures](https://www.kicksecure.com/wiki/Dev/Build_Documentation/generic-package)
+## License
 
-## Contact ##
+[GNU Affero General Public License v3 or later](https://www.gnu.org/licenses/agpl-3.0.html) (AGPL-3.0-or-later). See `COPYING` for the full text.
+
+## Contact
 
 * [Free Forum Support](https://forums.kicksecure.com)
 * [Premium Support](https://www.kicksecure.com/wiki/Premium_Support)
 
-## Donate ##
+## Donate
 
 `usability-misc` requires [donations](https://www.kicksecure.com/wiki/Donate) to stay alive!
