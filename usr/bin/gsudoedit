@@ -4,7 +4,10 @@
 ## See the file COPYING for copying conditions.
 
 #set -x
-set -e
+set -o errexit
+set -o nounset
+set -o pipefail
+set -o errtrace
 
 ## Cannot check if it is a file first because then no new files could be created.
 # if ! test -f "$@" ; then

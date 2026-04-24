@@ -9,9 +9,10 @@
 ## Dependency of derivative-maker.
 
 echo "START: $0"
-set -e
-set -o pipefail
+set -o errexit
 set -o nounset
+set -o pipefail
+set -o errtrace
 
 root_check() {
    if [ "$(id -u)" != "0" ]; then

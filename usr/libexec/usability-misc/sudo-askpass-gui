@@ -4,7 +4,10 @@
 ## See the file COPYING for copying conditions.
 
 set -x
-set -e
+set -o errexit
+set -o nounset
+set -o pipefail
+set -o errtrace
 
 ## /usr/lib/openssh/gnome-ssh-askpass is provided by package ssh-askpass-gnome
 ## Has a confusing window title "OpenSSH".

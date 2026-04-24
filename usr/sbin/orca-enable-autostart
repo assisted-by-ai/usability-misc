@@ -3,7 +3,10 @@
 ## Copyright (C) 2021 - 2025 ENCRYPTED SUPPORT LLC <adrelanos@whonix.org>
 ## See the file COPYING for copying conditions.
 
-set -e
+set -o errexit
+set -o nounset
+set -o pipefail
+set -o errtrace
 
 if [ "$(id -u)" != "0" ]; then
    echo "ERROR: must be run as root! sudo $0"
