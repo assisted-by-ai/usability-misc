@@ -14,15 +14,7 @@
 Options must be consistent across all of: `parse_opt()` case statement, `usage()` output, man page (.ronn), bash completion, and zsh completion. When adding/removing options, update all five locations. The standalone file and auto-generated man page are rebuilt automatically.
 
 ## Helper-scripts (sourced functions)
-Many functions are sourced from the `helper-scripts` package (`/usr/libexec/helper-scripts/`). Source code: https://github.com/Kicksecure/helper-scripts. Key files:
-- `check_runtime.bsh`, `strings.bsh` -- string/number utilities (`is_whole_number`, `random_alpha_numeric`)
-- `get_os.sh` -- `get_os()` sets `arch`, `distro`, `distro_version`; `get_distro()` sets `*_derivative_detected` flags
-- `log_run_die.sh` -- `log()`, `die()`, `log_run()`, `log_time()`
-- `root_cmd.sh` -- `root_cmd()`, `run_as_target_user()`, `get_su_cmd()`
-- `parse_opt.sh` -- `begin_optparse()`, `get_arg()`, `range_arg()`
-- `has.sh` -- `has()`, `kernel_module_loaded_check()`
-
-Bugs in these functions must be fixed in the helper-scripts repo, not here.
+Many functions are sourced from `/usr/libexec/helper-scripts/` (package `helper-scripts`, source: https://github.com/Kicksecure/helper-scripts). Bugs in those functions must be fixed in that repo, not here.
 
 ## Shell strictness
 The script runs with `set -o nounset` (among other strict options). All variables must be initialized before use, even if they are only assigned conditionally later.
@@ -35,7 +27,6 @@ Common patterns to watch for:
 - Many external functions are `source`d from package `helper-scripts` (e.g., `get_os.sh`). Variables set by those functions are initialized inside them, not in this file.
 
 ## Other bug patterns found previously
-- **deb822 parser**: `get_pattern_sources_deb822_debian()` reads stanzas separated by blank lines. The match check must also run after the loop for the last stanza (in case the file has no trailing blank line).
 - **`get_download_links()` guest case fallthrough**: The `*` case (for `--virtualbox-only`, where `guest=none`) must assign clearnet to clearnet and onion to onion -- not swap them.
 - **Log messages referencing option names**: Ensure the log message matches the actual option being checked (e.g., `no_import` variable -> `--no-import` option, not `--import-only`).
 - **grep patterns with `\$` anchors**: Using `\$` (end-of-line anchor) in grep patterns for group membership checks is unreliable. Prefer `grep -w` alone for word matching.
