@@ -1649,6 +1649,26 @@ get_pattern_sources_deb822_debian() {
     fi
   done <<< "${file_contents}"
 
+  ## Check the last stanza in case the file does not end with an empty line.
+  match_hit='yes'
+  if [ -n "${types_pattern}" ] \
+    && ! [[ "${current_types}" =~ ${types_pattern} ]]; then
+    match_hit='no'
+  elif [ -n "${uris_pattern}" ] \
+    && ! [[ "${current_uris}" =~ ${uris_pattern} ]]; then
+    match_hit='no'
+  elif [ -n "${suites_pattern}" ] \
+    && ! [[ "${current_suites}" =~ ${suites_pattern} ]]; then
+    match_hit='no'
+  elif [ -n "${components_pattern}" ] \
+    && ! [[ "${current_components}" =~ ${components_pattern} ]]; then
+    match_hit='no'
+  fi
+
+  if [ "${match_hit}" = 'yes' ]; then
+    return 0
+  fi
+
   return 1
 }
 
